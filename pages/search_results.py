@@ -4,6 +4,7 @@ from utils.util import format_date_to_airbnb
 import logging
 import re
 from conftest import CARD_LOAD_TIMEOUT
+from utils.util import parse_dates
 
 logging.basicConfig(level=logging.INFO)
 
@@ -25,12 +26,6 @@ class SearchResultsPage:
 
     def results_dates(self):
         return self.page.get_by_test_id("little-search-anytime")
-
-    def results_check_in(self):
-        return self.page.get_by_test_id("structured-search-input-field-split-dates-0")
-
-    def results_check_out(self):
-        return self.page.get_by_test_id("structured-search-input-field-split-dates-1")
 
     def results_guests(self):
         return self.page.get_by_test_id("little-search-guests")
@@ -237,7 +232,7 @@ class SearchResultsPage:
         page_index = 1
 
         # Loop through the pages until there are no more pages
-        while True:
+        while True and page_index:
             # Get the best card in the page
             highest_rating_in_page, num_of_cards = self.get_max_card_rating_in_page()
 
@@ -249,7 +244,7 @@ class SearchResultsPage:
             logging.debug(f"Done page {page_index}, read {num_of_cards} cards.")
 
             # If there are more pages, go to the next page
-            if self.next_page_button().is_enabled():
+            if self.next_page_button().is_enabled() and page_index:
                 self.click_next_page()
                 page_index += 1
             else:
@@ -350,10 +345,13 @@ class SearchResultsPage:
         expect(self.results_heading_location()).to_contain_text(location)
 
     def verify_search_dates(self, check_in_date: datetime, check_out_date: datetime):
-        check_in_str = format_date_to_airbnb(check_in_date, verbose=False)
-        check_out_str = format_date_to_airbnb(check_out_date, verbose=False)
-        expect(self.results_check_in()).to_contain_text(check_in_str)
-        expect(self.results_check_out()).to_contain_text(check_out_str)
+        self.results_dates().wait_for(state="visible")
+        lines = self.results_dates().inner_text().split("\n")
+        dates_text = lines[1]
+        checkin, checkout = parse_dates(dates_text)
+
+        assert checkin == check_in_date, "Check-in date does not match"
+        assert checkout == check_out_date, "Check-out date does not match"
 
     def verify_search_guests(self, num_of_adults):
         expect(self.results_guests()).to_contain_text(f"{num_of_adults} guests")

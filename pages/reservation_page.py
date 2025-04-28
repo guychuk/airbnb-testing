@@ -10,7 +10,7 @@ class ReservationPage:
     # Locators
 
     def continue_button(self):
-        return self.page.get_by_role("button", name="Continue")
+        return self.page.get_by_role("button", name="Continue").first
 
     def phone_number_input(self) -> Locator:
         return self.page.get_by_test_id("login-signup-phonenumber")
@@ -62,19 +62,16 @@ class ReservationPage:
 
         self.header().wait_for(state="visible")
 
-        if (
-            self.left_dates_locator().is_visible()
-            and self.left_guests_locator().is_visible()
-        ):
-            guests_text = self.left_guests_locator().inner_text().split("\n")[1]
-            dates_text = self.left_dates_locator().inner_text().split("\n")[1]
-        else:
+        if self.reservation_summary().is_visible():
             summary_text = self.reservation_summary().inner_text()
 
             lines = summary_text.split("\n")
 
             dates_text = lines[1]
             guests_text = lines[2]
+        else:
+            guests_text = self.left_guests_locator().inner_text().split("\n")[1]
+            dates_text = self.left_dates_locator().inner_text().split("\n")[1]
 
         # Assert dates
         chek_in_date, check_out_date = parse_dates(dates_text)

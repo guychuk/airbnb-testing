@@ -62,7 +62,7 @@ def test_reservation(page, base_url):
 
     # Define search parameters
     location = "Tel Aviv"
-    check_in_date = datetime(2025, 4, 30)
+    check_in_date = datetime(2025, 5, 1)
     check_out_date = datetime(2025, 5, 5)
     num_of_adults = 2
     num_of_children = 1
