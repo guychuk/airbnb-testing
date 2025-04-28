@@ -3,9 +3,7 @@ from datetime import datetime
 from utils.util import format_date_to_airbnb
 import logging
 import re
-import pytest
-from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
-
+from conftest import CARD_LOAD_TIMEOUT
 
 logging.basicConfig(level=logging.INFO)
 
@@ -46,6 +44,9 @@ class SearchResultsPage:
     def first_page_button(self):
         return self.page.get_by_role("link", name="1", exact=True)
 
+    def cards_locator(self):
+        return self.page.locator('div[itemprop="itemListElement"]')
+
     # Actions
     def click_results_dates(self):
         self.results_dates().click()
@@ -55,31 +56,6 @@ class SearchResultsPage:
 
     def click_previous_page(self):
         self.previous_page_button().click()
-
-    def wait_for_search_results(self):
-        """
-        Waits for the search results to load by waiting for the first
-        listing card and the footer to appear.
-
-        Returns:
-            bool: True if the search results loaded, False otherwise.
-        """
-
-        try:
-            # Wait for the first listing card to appear
-            self.page.wait_for_selector(
-                'div[itemprop="itemListElement"]', timeout=30_000
-            )
-
-            # Wait for the footer to be visible
-            self.page.wait_for_selector("footer", state="visible", timeout=20_000)
-
-        except TimeoutError as e:
-            logging.error(f"Timed out waiting for elements: {e}")
-            pytest.fail(f"Timed out waiting for search results elements: {e}")
-
-            return False
-        return True
 
     def go_back_n_pages(self, n):
         for _ in range(n):
@@ -92,7 +68,156 @@ class SearchResultsPage:
     def go_back_to_first_page(self):
         self.first_page_button().click()
 
-    def find_highest_rated(self, click: bool = False):
+    def get_card_rating(self, card) -> float | int:
+        """
+        Extracts the rating from a card element.
+
+        Args:
+            card: The card element containing the rating information.
+
+        Returns:
+            float: The extracted rating as a float if found, otherwise -1.
+        """
+
+        rating_regex = re.compile(r"(\d\.\d+) out of 5 average rating")
+
+        # Check if it has a rating
+        match_rating = re.search(rating_regex, card.inner_text())
+
+        if match_rating:
+            rating = float(match_rating.group(1))
+
+            return rating
+
+        return -1
+
+    def find_card_by_rating(self, target):
+        card_index = 0
+
+        while True:
+            try:
+                card = self.cards_locator().nth(card_index)
+                card.wait_for(state="visible", timeout=CARD_LOAD_TIMEOUT)
+
+                rating = self.get_card_rating(card)
+
+                if rating == target:
+                    return card
+
+                card_index += 1
+            except Exception as e:
+                break
+
+        return None
+
+    def find_card_by_price(self, target):
+        card_index = 0
+
+        while True:
+            try:
+                card = self.cards_locator().nth(card_index)
+                card.wait_for(state="visible", timeout=CARD_LOAD_TIMEOUT)
+
+                price = self.get_card_price(card)
+
+                if price == target:
+                    return card
+
+                card_index += 1
+            except Exception as e:
+                break
+
+        return None
+
+    def get_max_card_rating_in_page(self) -> tuple[float | int, int]:
+        """
+        Finds the highest rated card in the page.
+
+        Returns:
+            tuple: A tuple containing the highes rating in the page, and the total number of cards in the page.
+        """
+
+        card_index = 0
+        highest_rating = -1
+
+        while True:
+            try:
+                card = self.cards_locator().nth(card_index)
+                card.wait_for(state="visible", timeout=CARD_LOAD_TIMEOUT)
+
+                rating = self.get_card_rating(card)
+
+                if rating > highest_rating:
+                    highest_rating = rating
+
+                card_index += 1
+            except Exception as e:
+                break
+
+        return highest_rating, card_index
+
+    def get_card_price(self, card) -> float:
+        """
+        Extracts the price from a card element.
+
+        Args:
+            card: The card element containing the rating information.
+
+        Returns:
+            float: The extracted price as a float if found, otherwise infinity.
+        """
+
+        # The line in which the price is displayed
+        price_line_regex = re.compile(r"([^\n]+)\n(?=Show price breakdown)")
+
+        # The price itself
+        price_regex = re.compile(r"[^\d]*(\d[\d,\.]*)")
+
+        # Get the price line
+        match_price_line = re.search(price_line_regex, card.inner_text())
+
+        if match_price_line:
+            # Extract the price from the line
+            match_price = re.search(price_regex, match_price_line.group(1))
+
+            if match_price:
+                # Convert the price to a float
+                price = float(match_price.group(1).replace(",", ""))
+
+                return price
+
+        return float("inf")
+
+    def get_min_card_price_in_page(self) -> tuple[float | int, int]:
+        """
+        Finds the cheapest card in the page.
+
+        Returns:
+            tuple: A tuple containing the lowest price in the page, and the total number of cards in the page.
+        """
+
+        card_index = 0
+        lowest_price = float("inf")
+
+        while True:
+            try:
+                card = self.cards_locator().nth(card_index)
+                card.wait_for(state="visible", timeout=CARD_LOAD_TIMEOUT)
+
+                price = self.get_card_price(card)
+
+                if price < lowest_price:
+                    lowest_price = price
+
+                card_index += 1
+            except Exception as e:
+                break
+
+        return lowest_price, card_index
+
+    def find_highest_rated(
+        self, click: bool = False
+    ) -> tuple[int | float, str, Page | None]:
         """
         Finds the highest rated apartment on Airbnb.
 
@@ -100,46 +225,33 @@ class SearchResultsPage:
             click (bool, optional): If True, the function will click on the highest rated apartment and open its details page.
 
         Returns:
-            tuple: A tuple containing the highest rating and the text of the card with the highest rating, if click is False.
-                   Else, the function will return the details page of the highest rated apartment.
+            tuple: A tuple containing the highest rated apartment's details (rating, description) page and the highest rating.
         """
-
-        cards_selector = 'div[itemprop="itemListElement"]'
-        rating_regex = re.compile(r"(\d\.\d) out of 5 average rating")
 
         highest_rating = 0
         highest_rating_page = 0
-        rating_text = ""
 
         # Go back to the first page (if not already on it)
         if self.first_page_button().is_enabled():
             self.go_back_to_first_page()
         page_index = 1
 
+        PAGE_LIMIT = 2
+
         # Loop through the pages until there are no more pages
-        while True:
-            # Wait for all search results to load
-            if not self.wait_for_search_results():
-                logging.error("Failed to load search results")
-                return
+        while True and page_index <= PAGE_LIMIT:
+            # Get the best card in the page
+            highest_rating_in_page, num_of_cards = self.get_max_card_rating_in_page()
 
-            cards = self.page.locator(cards_selector)
+            # If the rating in the page is higher than the highest rating, update the highest rating
+            if highest_rating_in_page > highest_rating:
+                highest_rating = highest_rating_in_page
+                highest_rating_page = page_index
 
-            # Search for the highest rating on the current page
-            for card in cards.all():
-                # Check if it has a rating
-                match_rating = re.search(rating_regex, card.inner_text())
+            logging.debug(f"Done page {page_index}, read {num_of_cards} cards.")
 
-                if match_rating:
-                    rating = float(match_rating.group(1))
-
-                    # Update the highest rating and page index if found
-                    if rating > highest_rating:
-                        highest_rating = rating
-                        highest_rating_page = page_index
-                        rating_text = match_rating.group(0)
-
-            if self.next_page_button().is_enabled():
+            # If there are more pages, go to the next page
+            if self.next_page_button().is_enabled() and page_index < PAGE_LIMIT:
                 self.click_next_page()
                 page_index += 1
             else:
@@ -148,31 +260,25 @@ class SearchResultsPage:
         # Now go back to the page with the highest rating
         self.go_back_n_pages(page_index - highest_rating_page)
 
-        # Wait until all search results are loaded again
-        if not self.wait_for_search_results():
-            logging.error("Failed to load search results")
-            return
+        # Get the card with the highest rating
+        best_card = self.find_card_by_rating(highest_rating)
 
-        cards = self.page.locator(cards_selector)
+        if best_card is None:
+            logging.error("No card with the highest rating was found.")
+            raise ValueError("No card with the highest rating was found.")
 
-        # Search for the card with the highest rating
-        for card in cards.all():
-            card_text = card.inner_text()
+        best_card_desc = best_card.inner_text()
 
-            match_rating = re.search(rating_text, card_text)
+        current_page = None
 
-            # The first match is the one we want
-            if match_rating:
-                if click:
-                    # Click on the card and open the details page
-                    with self.page.context.expect_page() as new_page_info:
-                        card.click()
+        if click:
+            # Click on the card and open the details page
+            with self.page.context.expect_page() as new_page_info:
+                best_card.click()
 
-                    return new_page_info.value
-                else:
-                    return highest_rating, card_text
+            current_page = new_page_info.value
 
-        return None
+        return highest_rating, best_card_desc, current_page
 
     def find_cheapest(self, click: bool = False):
         """
@@ -186,83 +292,57 @@ class SearchResultsPage:
                    Else, the function will return the details page of the cheapest apartment.
         """
 
-        cards_selector = 'div[itemprop="itemListElement"]'
-
-        # The line in which the price is displayed
-        price_line_regex = re.compile(r"([^\n]+)\n(?=Show price breakdown)")
-
-        # The price itself
-        price_regex = re.compile(r"[^\d]*(\d[\d,\.]*)")
-
         lowest_price = float("inf")
         lowest_price_page = 0
-        price_text = ""
 
         # Go back to the first page (if not already on it)
         if self.first_page_button().is_enabled():
             self.go_back_to_first_page()
         page_index = 1
 
+        PAGE_LIMIT = 2
+
         # Loop through the pages until there are no more pages
-        while True:
-            # Wait for all search results to load
-            if not self.wait_for_search_results():
-                logging.error("Failed to load search results")
-                return
+        while True and page_index <= PAGE_LIMIT:
+            # Get the best card in the page
+            lowest_price_in_page, num_of_cards = self.get_min_card_price_in_page()
 
-            cards = self.page.locator(cards_selector)
+            # If the lowest price in the page is lower than the lowest price, update the lowest price
+            if lowest_price_in_page < lowest_price:
+                lowest_price = lowest_price_in_page
+                lowest_price_page = page_index
 
-            # Search for the highest rating on the current page
-            for card in cards.all():
-                # Get the price line
-                match_price_line = re.search(price_line_regex, card.inner_text())
+            logging.debug(f"Done page {page_index}, read {num_of_cards} cards.")
 
-                if match_price_line:
-                    # Extract the price from the line
-                    match_price = re.search(price_regex, match_price_line.group(1))
-
-                    if match_price:
-                        # Convert the price to a float
-                        price = float(match_price.group(1).replace(",", ""))
-
-                        if price < lowest_price:
-                            lowest_price = price
-                            lowest_price_page = page_index
-                            price_text = match_price_line.group(0)
-
-            if self.next_page_button().is_enabled():
+            # If there are more pages, go to the next page
+            if self.next_page_button().is_enabled() and page_index < PAGE_LIMIT:
                 self.click_next_page()
                 page_index += 1
             else:
                 break
 
-        # Now go back to the page with the highest rating
+        # Now go back to the page with the lowest price
         self.go_back_n_pages(page_index - lowest_price_page)
 
-        # Wait until all search results are loaded again
-        if not self.wait_for_search_results():
-            logging.error("Failed to load search results")
-            return
+        # Get the card with the lowest price
+        best_card = self.find_card_by_price(lowest_price)
 
-        cards = self.page.locator(cards_selector)
+        if best_card is None:
+            logging.error("No card with the lowest price was found.")
+            raise ValueError("No card with the lowest price was found.")
 
-        # Search for the card with the lowest price
-        for card in cards.all():
-            card_text = card.inner_text()
-            match_price = re.search(price_text, card_text)
+        best_card_desc = best_card.inner_text()
 
-            # The first match is the one we want
-            if match_price:
-                if click:
-                    # Click on the card and open the details page
-                    with self.page.context.expect_page() as new_page_info:
-                        card.click()
+        current_page = None
 
-                        return new_page_info.value
-                else:
-                    return lowest_price, card_text
+        if click:
+            # Click on the card and open the details page
+            with self.page.context.expect_page() as new_page_info:
+                best_card.click()
 
-        return None
+            current_page = new_page_info.value
+
+        return lowest_price, best_card_desc, current_page
 
     # Verify
     def verify_search_location(self, location):

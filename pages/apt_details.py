@@ -36,6 +36,9 @@ class AptDetails:
     def reserve_button(self):
         return self.page.get_by_role("button", name="Reserve")
 
+    def translation_header(self):
+        return self.page.get_by_role("heading", name="Translation on")
+
     # Actions
 
     def click_close_translation_popup_button(self):
@@ -44,7 +47,8 @@ class AptDetails:
         """
 
         try:
-            self.close_translation_popup_button().click(timeout=5000)
+            self.translation_header().wait_for(state="visible")
+            self.close_translation_popup_button().click()
         except Exception as e:
             # Don't raise an error if the button is not found or clickable
             logging.debug("Failed to close translation popup: %s", str(e))

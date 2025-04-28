@@ -1,4 +1,5 @@
-from playwright.sync_api import Page
+import re
+from playwright.sync_api import Page, Locator
 from utils.util import parse_dates, parse_guests
 
 
@@ -11,7 +12,7 @@ class ReservationPage:
     def continue_button(self):
         return self.page.get_by_role("button", name="Continue")
 
-    def phone_number_input(self):
+    def phone_number_input(self) -> Locator:
         return self.page.get_by_test_id("login-signup-phonenumber")
 
     def reservation_summary(self):
@@ -31,9 +32,14 @@ class ReservationPage:
         # 2. The one with the "Continue" button at the bottom, alreasy displaying phone number input
         if not self.phone_number_input().is_visible():
             self.click_continue_button()
-            self.page.wait_for_timeout(250)
+            self.phone_number_input().wait_for(state="visible")
 
         self.fill_phone_number(phone_number)
+
+    def header(self):
+        return self.page.get_by_role(
+            "heading", name=re.compile("Request to book|Confirm and pay")
+        )
 
     # Validations
 
@@ -48,10 +54,7 @@ class ReservationPage:
             exp_check_out (datetime): The expected check-out date.
         """
 
-        try:
-            self.page.wait_for_load_state("networkidle", timeout=5000)
-        except:
-            pass
+        self.header().wait_for(state="visible")
 
         if self.reservation_summary().is_visible():
             summary_text = self.reservation_summary().inner_text()

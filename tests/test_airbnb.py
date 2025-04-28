@@ -17,7 +17,7 @@ def test_search(page, base_url):
     # Define search parameters
     location = "Tel Aviv"
     check_in_date = datetime(2025, 5, 1)
-    check_out_date = datetime(2025, 5, 7)
+    check_out_date = datetime(2025, 5, 3)
     num_of_adults = 2
 
     # Go to the home page
@@ -39,12 +39,13 @@ def test_search(page, base_url):
 
     # Find the highest rated apartment
     logging.info("4. Analyzing search results...")
-    rating, text = search_results_page.find_highest_rated(click=False)
+
+    rating, text, _ = search_results_page.find_highest_rated(click=False)
     logging.info("a. Highest Rated Apartment:")
     logging.info(f"Highest Rating:   {rating}")
     logging.info(f"Apt. Details:     {text}")
 
-    price, text = search_results_page.find_cheapest()
+    price, text, _ = search_results_page.find_cheapest(click=False)
     logging.info("b. Cheapest Apartment:")
     logging.info(f"Cheapest Price:   {price}")
     logging.info(f"Apt. Details:     {text}")
@@ -86,7 +87,7 @@ def test_reservation(page, base_url):
 
     # Find the highest rated apartment and click on it
     logging.info("4. Selecting highest rated apartment...")
-    new_page = search_results_page.find_highest_rated(click=True)
+    _, _, new_page = search_results_page.find_highest_rated(click=True)
 
     details_page = AptDetails(new_page)
 
@@ -95,8 +96,8 @@ def test_reservation(page, base_url):
 
     # Save reservation details
     logging.info("5a. Saving reservation details...")
-    details_page.page.wait_for_timeout(1000)
     details_box = details_page.page.locator("._1xm48ww")
+    details_box.wait_for(state="visible")
     details_box_text = details_box.inner_text()
 
     # Print the reservation details

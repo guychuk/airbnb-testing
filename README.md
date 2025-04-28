@@ -24,25 +24,26 @@ Before you begin, ensure you have the following installed on your system:
 
 ## Installation
 
-1. **Clone the Repository**:
+1. **Set Up a Virtual Environment**:  
+    Create and activate a virtual environment to isolate dependencies:
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows use: venv\Scripts\activate
+    ```
+
+2. **Clone the Repository**:
     ```bash
     git clone https://github.com/guychuk/airbnb-testing.git
     cd airbnb-testing
     ```
 
-2. **Install Dependencies**:  
+3. **Install Dependencies**:  
     Install [Playwright for Pytest](https://playwright.dev/python/docs/intro):
     ```bash
     pip install pytest-playwright
     ```
-    or if you're using Anaconda:
-    ```bash
-    conda config --add channels conda-forge
-    conda config --add channels microsoft
-    conda install pytest-playwright
-    ```
 
-3. **Install Browsers**:
+4. **Install Browsers**:
     ```bash
     playwright install
     ```
