@@ -42,6 +42,11 @@ Before you begin, ensure you have the following installed on your system:
     conda install pytest-playwright
     ```
 
+3. **Install Browsers**:
+    ```bash
+    playwright install
+    ```
+
 ---
 
 ## Running the Tests
@@ -60,5 +65,5 @@ Before you begin, ensure you have the following installed on your system:
 
 ## Configuration
 
-- **`pytest.ini`**: Contains pytest configurations.
+- **`pytest.ini`**: Contains pytest configurations (you choose browser to test there, default is chromium).
 - **Fixtures**: Shared test setup defined in `conftest.py`.

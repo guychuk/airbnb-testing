@@ -63,7 +63,7 @@ def test_reservation(page, base_url):
     check_in_date = datetime(2025, 4, 30)
     check_out_date = datetime(2025, 5, 5)
     num_of_adults = 2
-    num_of_children = 3
+    num_of_children = 1
 
     # Go to the home page
     logging.info("1. Navigating to Airbnb website...")
@@ -95,6 +95,7 @@ def test_reservation(page, base_url):
 
     # Save reservation details
     logging.info("5a. Saving reservation details...")
+    details_page.page.wait_for_timeout(1000)
     details_box = details_page.page.locator("._1xm48ww")
     details_box_text = details_box.inner_text()
 

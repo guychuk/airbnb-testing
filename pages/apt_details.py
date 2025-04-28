@@ -47,7 +47,7 @@ class AptDetails:
             self.close_translation_popup_button().click(timeout=5000)
         except Exception as e:
             # Don't raise an error if the button is not found or clickable
-            logging.error("Failed to close translation popup: %s", str(e))
+            logging.debug("Failed to close translation popup: %s", str(e))
 
     def get_dates(self) -> tuple[datetime, datetime]:
         """
