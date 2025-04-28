@@ -83,13 +83,15 @@ class ReservationPage:
 
         # Assert dates
         chek_in_date, check_out_date = parse_dates(dates)
-        assert chek_in_date == exp_check_in
-        assert check_out_date == exp_check_out
+        assert chek_in_date == exp_check_in, "Mismatch in check-in date"
+        assert check_out_date == exp_check_out, "Mismatch in checkout date"
 
         # Assert guests
         total_guests, adults, children = parse_guests(guests)
         if adults == -1 and children == -1:
-            assert total_guests == exp_adults + exp_children
+            assert (
+                total_guests == exp_adults + exp_children
+            ), "Mismatch in total guests number"
         else:
-            assert adults == exp_adults
-            assert children == exp_children
+            assert adults == exp_adults, "Mismatch in number of adults"
+            assert children == exp_children, "Mismatch in number of children"
