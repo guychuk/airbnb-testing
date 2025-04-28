@@ -61,6 +61,8 @@ class AptDetails:
             tuple[datetime, datetime]: The check-in and check-out dates in datetime format.
         """
 
+        self.trip_dates().wait_for(state="visible")
+
         dates_text = self.trip_dates().inner_text().split("\n")
 
         # The dates are in the format "month/day/year"
@@ -84,6 +86,8 @@ class AptDetails:
             ValueError: If the number of guests could not be found in the text.
         """
 
+        self.trip_guests().wait_for(state="visible")
+
         guests_text = self.trip_guests().inner_text()
         guests_regex = r"GUESTS\s+(\d+)\s+guests"  # For example: "GUESTS 2 guests"
 
@@ -106,6 +110,8 @@ class AptDetails:
         Raises:
             ValueError: If the total price could not be found in the text.
         """
+
+        self.total_price().wait_for(state="visible")
 
         total_text = self.total_price().inner_text()
         total_regex = r"Total[^\d]*([\d,]*)[^\d]*"

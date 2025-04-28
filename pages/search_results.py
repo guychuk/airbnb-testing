@@ -225,7 +225,7 @@ class SearchResultsPage:
             click (bool, optional): If True, the function will click on the highest rated apartment and open its details page.
 
         Returns:
-            tuple: A tuple containing the highest rated apartment's details (rating, description) page and the highest rating.
+            tuple: A tuple containing the highest rated apartment's details (rating, description) and the new page (when not clicking this is None).
         """
 
         highest_rating = 0
@@ -236,10 +236,8 @@ class SearchResultsPage:
             self.go_back_to_first_page()
         page_index = 1
 
-        PAGE_LIMIT = 2
-
         # Loop through the pages until there are no more pages
-        while True and page_index <= PAGE_LIMIT:
+        while True:
             # Get the best card in the page
             highest_rating_in_page, num_of_cards = self.get_max_card_rating_in_page()
 
@@ -251,7 +249,7 @@ class SearchResultsPage:
             logging.debug(f"Done page {page_index}, read {num_of_cards} cards.")
 
             # If there are more pages, go to the next page
-            if self.next_page_button().is_enabled() and page_index < PAGE_LIMIT:
+            if self.next_page_button().is_enabled():
                 self.click_next_page()
                 page_index += 1
             else:
@@ -280,7 +278,9 @@ class SearchResultsPage:
 
         return highest_rating, best_card_desc, current_page
 
-    def find_cheapest(self, click: bool = False):
+    def find_cheapest(
+        self, click: bool = False
+    ) -> tuple[int | float, str, Page | None]:
         """
         Finds the cheapest apartment on Airbnb.
 
@@ -288,8 +288,7 @@ class SearchResultsPage:
             click (bool, optional): If True, the function will click on the cheapest apartment and open its details page.
 
         Returns:
-            tuple: A tuple containing the lowest price and the text of the card with the lowest price, if click is False.
-                   Else, the function will return the details page of the cheapest apartment.
+            tuple: A tuple containing the cheapest apartment's details (price, description) and the new page (when not clicking this is None).
         """
 
         lowest_price = float("inf")
@@ -300,10 +299,8 @@ class SearchResultsPage:
             self.go_back_to_first_page()
         page_index = 1
 
-        PAGE_LIMIT = 2
-
         # Loop through the pages until there are no more pages
-        while True and page_index <= PAGE_LIMIT:
+        while True:
             # Get the best card in the page
             lowest_price_in_page, num_of_cards = self.get_min_card_price_in_page()
 
@@ -315,7 +312,7 @@ class SearchResultsPage:
             logging.debug(f"Done page {page_index}, read {num_of_cards} cards.")
 
             # If there are more pages, go to the next page
-            if self.next_page_button().is_enabled() and page_index < PAGE_LIMIT:
+            if self.next_page_button().is_enabled():
                 self.click_next_page()
                 page_index += 1
             else:
@@ -344,7 +341,8 @@ class SearchResultsPage:
 
         return lowest_price, best_card_desc, current_page
 
-    # Verify
+    # Verification
+
     def verify_search_location(self, location):
         expect(self.results_location()).to_contain_text(location)
 

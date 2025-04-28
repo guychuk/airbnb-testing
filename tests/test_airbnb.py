@@ -4,6 +4,7 @@ from pages.apt_details import AptDetails
 from pages.reservation_page import ReservationPage
 from datetime import datetime
 import logging
+from utils.util import format_date_to_airbnb
 
 
 def test_search(page, base_url):
@@ -96,13 +97,24 @@ def test_reservation(page, base_url):
 
     # Save reservation details
     logging.info("5a. Saving reservation details...")
-    details_box = details_page.page.locator("._1xm48ww")
-    details_box.wait_for(state="visible")
-    details_box_text = details_box.inner_text()
+
+    # Dates
+    dates = details_page.get_dates()
+    checkin_dt, checkout_dt = dates
+    checkin_str = format_date_to_airbnb(checkin_dt)
+    checkout_str = format_date_to_airbnb(checkout_dt)
+
+    # Guests
+    guests = details_page.get_number_of_guests()
+
+    # Price
+    price = details_page.get_total_price()
 
     # Print the reservation details
     logging.info("5b. Printing reservation details...")
-    logging.info(details_box_text)
+    logging.info(f"Dates: {checkin_str} - {checkout_str}")
+    logging.info(f"Number of guests: {guests}")
+    logging.info(f"Total price: {price}")  # print(price_text)
 
     # Now make a reservation
     logging.info("6. Making a reservation...")

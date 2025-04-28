@@ -15,8 +15,14 @@ class ReservationPage:
     def phone_number_input(self) -> Locator:
         return self.page.get_by_test_id("login-signup-phonenumber")
 
+    def left_dates_locator(self):
+        return self.page.get_by_text(re.compile(r"Dates.*Edit"))
+
+    def left_guests_locator(self):
+        return self.page.get_by_text(re.compile(r"Guests.*Edit"))
+
     def reservation_summary(self):
-        return self.page.locator(".b1evnv76")
+        return self.page.get_by_text(re.compile(r"Trip details.*Change"))
 
     # Actions
 
@@ -56,41 +62,27 @@ class ReservationPage:
 
         self.header().wait_for(state="visible")
 
-        if self.reservation_summary().is_visible():
+        if (
+            self.left_dates_locator().is_visible()
+            and self.left_guests_locator().is_visible()
+        ):
+            guests_text = self.left_guests_locator().inner_text().split("\n")[1]
+            dates_text = self.left_dates_locator().inner_text().split("\n")[1]
+        else:
             summary_text = self.reservation_summary().inner_text()
 
             lines = summary_text.split("\n")
 
-            # fine the "Trip details" line index
-            trip_details_index = lines.index("Trip details")
-
-            dates = lines[trip_details_index + 1]
-            guests = lines[trip_details_index + 2]
-        else:
-            fourth_div = self.page.locator("div:nth-child(4) > div > div > div").first
-
-            # Check if it has "guests" in it
-            if "guests" in fourth_div.inner_text():
-                dates_div = self.page.locator(
-                    "div:nth-child(3) > div > div > div"
-                ).first
-                guests_div = fourth_div
-            else:
-                dates_div = fourth_div
-                guests_div = self.page.locator(
-                    "div:nth-child(5) > div > div > div"
-                ).first
-
-            guests = guests_div.inner_text().split("\n")[1]
-            dates = dates_div.inner_text().split("\n")[1]
+            dates_text = lines[1]
+            guests_text = lines[2]
 
         # Assert dates
-        chek_in_date, check_out_date = parse_dates(dates)
+        chek_in_date, check_out_date = parse_dates(dates_text)
         assert chek_in_date == exp_check_in, "Mismatch in check-in date"
         assert check_out_date == exp_check_out, "Mismatch in checkout date"
 
         # Assert guests
-        total_guests, adults, children = parse_guests(guests)
+        total_guests, adults, children = parse_guests(guests_text)
         if adults == -1 and children == -1:
             assert (
                 total_guests == exp_adults + exp_children
