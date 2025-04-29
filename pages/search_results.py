@@ -40,7 +40,7 @@ class SearchResultsPage:
         return self.page.get_by_role("link", name="1", exact=True)
 
     def cards_locator(self):
-        return self.page.locator('div[itemprop="itemListElement"]')
+        return self.page.locator('div[data-testid="card-container"]')
 
     # Actions
     def click_results_dates(self):

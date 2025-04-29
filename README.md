@@ -24,17 +24,17 @@ Before you begin, ensure you have the following installed on your system:
 
 ## Installation
 
-1. **Set Up a Virtual Environment**:  
+1. **Clone the Repository**:  
+    ```bash
+    git clone https://github.com/guychuk/airbnb-testing.git
+    cd airbnb-testing
+    ```
+
+2. **Set Up a Virtual Environment**:  
     Create and activate a virtual environment to isolate dependencies:
     ```bash
     python -m venv venv
     source venv/bin/activate  # On Windows use: venv\Scripts\activate
-    ```
-
-2. **Clone the Repository**:
-    ```bash
-    git clone https://github.com/guychuk/airbnb-testing.git
-    cd airbnb-testing
     ```
 
 3. **Install Dependencies**:  
@@ -43,7 +43,7 @@ Before you begin, ensure you have the following installed on your system:
     pip install pytest-playwright
     ```
 
-4. **Install Browsers**:
+4. **Install Browsers**:  
     ```bash
     playwright install
     ```
@@ -66,5 +66,5 @@ Before you begin, ensure you have the following installed on your system:
 
 ## Configuration
 
-- **`pytest.ini`**: Contains pytest configurations (you choose browser to test there, default is chromium).
+- **`pytest.ini`**: Contains pytest configurations (you choose browser to test there, for example).
 - **Fixtures**: Shared test setup defined in `conftest.py`.
